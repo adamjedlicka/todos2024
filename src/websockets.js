@@ -1,51 +1,59 @@
-import { WebSocketServer } from 'ws'
-import ejs from 'ejs'
-import { getAllTodos, getTodoById } from './db.js'
+import { WebSocketServer } from "ws"
+import ejs from "ejs"
+import { getAllTodos, getTodoById } from "./db.js"
 
 const connections = new Set()
 
 export const createWebSocketServer = (server) => {
   const wss = new WebSocketServer({ server })
 
-  wss.on('connection', (socket) => {
+  wss.on("connection", (socket) => {
     connections.add(socket)
 
-    console.log('New connection', connections.size)
+    console.log("New connection", connections.size)
 
-    socket.on('close', () => {
+    socket.on("close", () => {
       connections.delete(socket)
 
-      console.log('Closed connection', connections.size)
+      console.log("Closed connection", connections.size)
     })
   })
 }
 
 export const sendTodoListToAllConnections = async () => {
-  const todoList = await ejs.renderFile('views/_todos.ejs', {
-    todos: await getAllTodos(),
-  })
+  const todoList = await ejs.renderFile(
+    "views/_todos.ejs",
+    {
+      todos: await getAllTodos(),
+    }
+  )
 
   for (const connection of connections) {
     connection.send(
       JSON.stringify({
-        type: 'todoList',
+        type: "todoList",
         html: todoList,
       })
     )
   }
 }
 
-export const sendTodoDetailToAllConnections = async (id) => {
+export const sendTodoDetailToAllConnections = async (
+  id
+) => {
   const todo = await getTodoById(id)
 
-  const todoDetail = await ejs.renderFile('views/_todo.ejs', {
-    todo,
-  })
+  const todoDetail = await ejs.renderFile(
+    "views/_todo.ejs",
+    {
+      todo,
+    }
+  )
 
   for (const connection of connections) {
     connection.send(
       JSON.stringify({
-        type: 'todoDetail',
+        type: "todoDetail",
         id: todo.id,
         html: todoDetail,
       })
@@ -53,11 +61,13 @@ export const sendTodoDetailToAllConnections = async (id) => {
   }
 }
 
-export const sendTodoDeletedToAllConnections = async (id) => {
+export const sendTodoDeletedToAllConnections = async (
+  id
+) => {
   for (const connection of connections) {
     connection.send(
       JSON.stringify({
-        type: 'todoDeleted',
+        type: "todoDeleted",
         id,
       })
     )
