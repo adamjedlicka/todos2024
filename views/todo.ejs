@@ -7,17 +7,9 @@
 </head>
 <body>
 
-  <h1><%= todo.title %></h1>
-
-  <hr>
-
-  <a href="/remove-todo/<%= todo.id %>">
-    odebrat
-  </a>
-  &nbsp;
-  <a href="/toggle-todo/<%= todo.id %>">
-    <%= todo.done ? 'hotovo' : 'nehotvo' %>
-  </a>
+  <div id="todoDetail">
+    <%- include('_todo') %>
+  </div>
 
   <hr>
 
@@ -37,6 +29,24 @@
   <hr>
 
   <a href="/">Zpět na seznam</a>
+
+  <script>
+    const ws = new WebSocket('ws://localhost:3000')
+
+    ws.addEventListener('message', (ev) => {
+      const data = JSON.parse(ev.data)
+
+      if (String(data.id) === "<%= todo.id %>") {
+        if (data.type === 'todoDetail') {
+          const el = document.getElementById('todoDetail')
+          el.innerHTML = data.html
+        } else if (data.type === 'todoDeleted') {
+          alert('Todočko bylo smazáno')
+          window.location.assign('/')
+        }
+      }
+    })
+  </script>
 
 </body>
 </html>

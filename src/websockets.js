@@ -1,6 +1,6 @@
 import { WebSocketServer } from 'ws'
 import ejs from 'ejs'
-import { db, getAllTodos } from './db.js'
+import { getAllTodos, getTodoById } from './db.js'
 
 const connections = new Set()
 
@@ -30,6 +30,35 @@ export const sendTodoListToAllConnections = async () => {
       JSON.stringify({
         type: 'todoList',
         html: todoList,
+      })
+    )
+  }
+}
+
+export const sendTodoDetailToAllConnections = async (id) => {
+  const todo = await getTodoById(id)
+
+  const todoDetail = await ejs.renderFile('views/_todo.ejs', {
+    todo,
+  })
+
+  for (const connection of connections) {
+    connection.send(
+      JSON.stringify({
+        type: 'todoDetail',
+        id: todo.id,
+        html: todoDetail,
+      })
+    )
+  }
+}
+
+export const sendTodoDeletedToAllConnections = async (id) => {
+  for (const connection of connections) {
+    connection.send(
+      JSON.stringify({
+        type: 'todoDeleted',
+        id,
       })
     )
   }
