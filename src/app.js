@@ -13,11 +13,6 @@ app.set("view engine", "ejs")
 app.use(express.static("public"))
 app.use(express.urlencoded({ extended: true }))
 
-app.use((req, res, next) => {
-  console.log("Incomming request", req.method, req.url)
-  next()
-})
-
 app.get("/", async (req, res) => {
   const todos = await getAllTodos()
 
