@@ -9,6 +9,12 @@
 
   <h1><%= title %></h1>
 
+  <% if (locals.user) { %>
+    <h2><%= user.name %></h2>
+  <% } else { %>
+    <a href="/register">Registrovat se</a>
+  <% } %>
+
   <div id="todoList">
     <%- include('_todos') %>
   </div>

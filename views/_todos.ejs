@@ -2,7 +2,7 @@
 <% for (const todo of todos) { %>
   <li>
     <a href="/todo/<%= todo.id %>">
-      <%= todo.title %>
+      <%= todo.title %> <%= todo.user_id %>
     </a>
     &nbsp;
     <a href="/remove-todo/<%= todo.id %>">
