@@ -21,7 +21,9 @@ app.use(cookieParser())
 app.use(loadUserFromCookie)
 
 app.get("/", async (req, res) => {
-  const todos = await getAllTodos()
+  const todos = await getAllTodos({
+    returnOnlyIncomplete: req.query.show === "incomplete",
+  })
 
   res.render("index", {
     title: "Todos",

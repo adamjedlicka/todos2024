@@ -5,8 +5,14 @@ const env = process.env.NODE_ENV ?? "development"
 
 export const db = knex(knexfile[env])
 
-export const getAllTodos = async () => {
-  const todos = await db("todos").select("*")
+export const getAllTodos = async (options) => {
+  const query = db("todos").select("*")
+
+  if (options.returnOnlyIncomplete) {
+    query.where("done", "=", false)
+  }
+
+  const todos = await query
 
   return todos
 }

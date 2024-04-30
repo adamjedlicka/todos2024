@@ -1,3 +1,5 @@
+// @ts-check
+
 import { db, getTodoById } from "../db.js"
 import { Router } from "express"
 import { requiresAuth } from "../middlewares/requiresAuth.js"
