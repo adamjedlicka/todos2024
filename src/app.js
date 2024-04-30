@@ -6,7 +6,11 @@ import {
   sendTodoDetailToAllConnections,
   sendTodoListToAllConnections,
 } from "./websockets.js"
-import { createUser, getUserByToken } from "./users.js"
+import {
+  createUser,
+  getUser,
+  getUserByToken,
+} from "./users.js"
 
 export const app = express()
 
@@ -100,33 +104,43 @@ app.post(
   }
 )
 
-app.get("/remove-todo/:id", async (req, res) => {
-  const todo = await getTodoById(req.params.id)
+app.get(
+  "/remove-todo/:id",
+  requiresAuth,
+  checkThatTodoBelongsToCurentUser,
+  async (req, res) => {
+    const todo = await getTodoById(req.params.id)
 
-  if (!todo) return next()
+    if (!todo) return next()
 
-  await db("todos").delete().where("id", todo.id)
+    await db("todos").delete().where("id", todo.id)
 
-  sendTodoListToAllConnections()
-  sendTodoDeletedToAllConnections(todo.id)
+    sendTodoListToAllConnections()
+    sendTodoDeletedToAllConnections(todo.id)
 
-  res.redirect("/")
-})
+    res.redirect("/")
+  }
+)
 
-app.get("/toggle-todo/:id", async (req, res, next) => {
-  const todo = await getTodoById(req.params.id)
+app.get(
+  "/toggle-todo/:id",
+  requiresAuth,
+  checkThatTodoBelongsToCurentUser,
+  async (req, res, next) => {
+    const todo = await getTodoById(req.params.id)
 
-  if (!todo) return next()
+    if (!todo) return next()
 
-  await db("todos")
-    .update({ done: !todo.done })
-    .where("id", todo.id)
+    await db("todos")
+      .update({ done: !todo.done })
+      .where("id", todo.id)
 
-  sendTodoListToAllConnections()
-  sendTodoDetailToAllConnections(todo.id)
+    sendTodoListToAllConnections()
+    sendTodoDetailToAllConnections(todo.id)
 
-  res.redirect("back")
-})
+    res.redirect("back")
+  }
+)
 
 app.get("/register", async (req, res) => {
   res.render("register")
@@ -138,9 +152,34 @@ app.post("/register", async (req, res) => {
     req.body.password
   )
 
+  if (!user) return res.redirect("/register")
+
   res.cookie("token", user.token)
 
   res.redirect("/")
+})
+
+app.get("/login", async (req, res) => {
+  res.render("login")
+})
+
+app.post("/login", async (req, res) => {
+  const user = await getUser(
+    req.body.name,
+    req.body.password
+  )
+
+  if (!user) return res.redirect("/login")
+
+  res.cookie("token", user.token)
+
+  res.redirect("/")
+})
+
+app.get("/logout", (req, res) => {
+  res.clearCookie("token")
+
+  res.redirect("back")
 })
 
 app.use((req, res) => {
