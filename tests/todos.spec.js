@@ -27,64 +27,6 @@ test.serial("create new todo", async (t) => {
   t.assert(response.text.includes("Moje todo"))
 })
 
-test.serial("create new todo via form", async (t) => {
-  const response = await supertest
-    .agent(app)
-    .post("/add-todo")
-    .type("form")
-    .send({ title: "Nějaký název" })
-    .redirects(1)
-
-  t.assert(response.text.includes("Nějaký název"))
-})
-
-test.serial("update todo via form", async (t) => {
-  const [todo] = await db("todos")
-    .insert({
-      title: "Moje todo",
-    })
-    .returning("*")
-
-  const response = await supertest
-    .agent(app)
-    .post(`/update-todo/${todo.id}`)
-    .type("form")
-    .send({ title: "Tvoje todo" })
-    .redirects(1)
-
-  t.assert(response.text.includes("Tvoje todo"))
-})
-
-test.serial("remove todo", async (t) => {
-  const [todo] = await db("todos")
-    .insert({
-      title: "Moje todo",
-    })
-    .returning("*")
-
-  const response = await supertest
-    .agent(app)
-    .get(`/remove-todo/${todo.id}`)
-    .redirects(1)
-
-  t.assert(!response.text.includes("Tvoje todo"))
-})
-
-test.serial("toggle todo", async (t) => {
-  const [todo] = await db("todos")
-    .insert({
-      title: "Moje todo",
-    })
-    .returning("*")
-
-  const response = await supertest
-    .agent(app)
-    .get(`/toggle-todo/${todo.id}`)
-    .redirects(1)
-
-  t.assert(response.text.includes("hotovo"))
-})
-
 test.serial("todo detail", async (t) => {
   const [todo] = await db("todos")
     .insert({

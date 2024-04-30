@@ -1,49 +1,24 @@
 import express from "express"
 import cookieParser from "cookie-parser"
-import { db, getAllTodos, getTodoById } from "./db.js"
-import {
-  sendTodoDeletedToAllConnections,
-  sendTodoDetailToAllConnections,
-  sendTodoListToAllConnections,
-} from "./websockets.js"
-import {
-  createUser,
-  getUser,
-  getUserByToken,
-} from "./users.js"
+import expressEjsLayouts from "express-ejs-layouts"
+import { getAllTodos } from "./db.js"
+import { todosRouter } from "./routes/todos.js"
+import { usersRouter } from "./routes/users.js"
+import { loadUserFromCookie } from "./middlewares/loadUserFromCookie.js"
+import { todosApi } from "./api/todos.js"
 
 export const app = express()
 
+app.use(expressEjsLayouts)
+
+app.set("layout", "layouts/default-layout")
 app.set("view engine", "ejs")
 
 app.use(express.static("public"))
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
 
-app.use(async (req, res, next) => {
-  const token = req.cookies.token
-  if (!token) return next()
-  res.locals.user = await getUserByToken(token)
-  next()
-})
-
-const requiresAuth = (req, res, next) => {
-  if (res.locals.user) {
-    next()
-  } else {
-    res.redirect("/register")
-  }
-}
-
-const checkThatTodoBelongsToCurentUser = async (
-  req,
-  res,
-  next
-) => {
-  const todo = await getTodoById(req.params.id)
-  if (todo.user_id === res.locals.user.id) return next()
-  res.redirect("/")
-}
+app.use(loadUserFromCookie)
 
 app.get("/", async (req, res) => {
   const todos = await getAllTodos()
@@ -54,133 +29,10 @@ app.get("/", async (req, res) => {
   })
 })
 
-app.get("/todo/:id", async (req, res, next) => {
-  const todo = await getTodoById(req.params.id)
+app.use(todosRouter)
+app.use(usersRouter)
 
-  if (!todo) return next()
-
-  res.render("todo", {
-    todo,
-  })
-})
-
-app.post("/add-todo", requiresAuth, async (req, res) => {
-  const todo = {
-    title: req.body.title,
-    done: false,
-    user_id: res.locals.user.id,
-  }
-
-  await db("todos").insert(todo)
-
-  res.redirect("/")
-})
-
-app.post(
-  "/update-todo/:id",
-  requiresAuth,
-  checkThatTodoBelongsToCurentUser,
-  async (req, res, next) => {
-    const todo = await getTodoById(req.params.id)
-
-    if (!todo) return next()
-
-    const query = db("todos").where("id", todo.id)
-
-    if (req.body.title) {
-      query.update({ title: req.body.title })
-    }
-
-    if (req.body.priority) {
-      query.update({ priority: req.body.priority })
-    }
-
-    await query
-
-    sendTodoListToAllConnections()
-    sendTodoDetailToAllConnections(todo.id)
-
-    res.redirect("back")
-  }
-)
-
-app.get(
-  "/remove-todo/:id",
-  requiresAuth,
-  checkThatTodoBelongsToCurentUser,
-  async (req, res) => {
-    const todo = await getTodoById(req.params.id)
-
-    if (!todo) return next()
-
-    await db("todos").delete().where("id", todo.id)
-
-    sendTodoListToAllConnections()
-    sendTodoDeletedToAllConnections(todo.id)
-
-    res.redirect("/")
-  }
-)
-
-app.get(
-  "/toggle-todo/:id",
-  requiresAuth,
-  checkThatTodoBelongsToCurentUser,
-  async (req, res, next) => {
-    const todo = await getTodoById(req.params.id)
-
-    if (!todo) return next()
-
-    await db("todos")
-      .update({ done: !todo.done })
-      .where("id", todo.id)
-
-    sendTodoListToAllConnections()
-    sendTodoDetailToAllConnections(todo.id)
-
-    res.redirect("back")
-  }
-)
-
-app.get("/register", async (req, res) => {
-  res.render("register")
-})
-
-app.post("/register", async (req, res) => {
-  const user = await createUser(
-    req.body.name,
-    req.body.password
-  )
-
-  if (!user) return res.redirect("/register")
-
-  res.cookie("token", user.token)
-
-  res.redirect("/")
-})
-
-app.get("/login", async (req, res) => {
-  res.render("login")
-})
-
-app.post("/login", async (req, res) => {
-  const user = await getUser(
-    req.body.name,
-    req.body.password
-  )
-
-  if (!user) return res.redirect("/login")
-
-  res.cookie("token", user.token)
-
-  res.redirect("/")
-})
-
-app.get("/logout", (req, res) => {
-  res.clearCookie("token")
-
-  res.redirect("back")
-})
+app.use("/api", todosApi)
 
 app.use((req, res) => {
   res.status(404)
