@@ -5,10 +5,12 @@ const env = process.env.NODE_ENV ?? "development"
 
 export const db = knex(knexfile[env])
 
-export const getAllTodos = async (options = {}) => {
+export const getAllTodos = async ({
+  returnOnlyIncomplete = false,
+} = {}) => {
   const query = db("todos").select("*")
 
-  if (options.returnOnlyIncomplete) {
+  if (returnOnlyIncomplete) {
     query.where("done", "=", false)
   }
 
